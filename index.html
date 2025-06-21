@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Self-Checkout</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand&family=Gilda+Display&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.6;
+    }
+    header {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.8rem;
+      text-align: center;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 50px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      margin: 40px auto;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #333333;
+      margin-bottom: 24px;
+    }
+    input[type="text"] {
+      width: 90%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s ease-in-out;
+      margin-bottom: 15px;
+    }
+    input[type="text"]:hover,
+    input[type="text"]:focus {
+      outline: none;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    }
+    button {
+      padding: 12px 18px;
+      margin-top: 16px;
+      font-size: 17px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: block;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    button:hover {
+      background-color: #45a049;
+      transform: translateY(-2px);
+    }
+    #cart {
+      margin-top: 30px;
+      padding: 20px;
+      border-left: 5px solid #4CAF50;
+      background-color: #fefefe;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      text-align: left;
+      font-size: 16px;
+    }
+    #cart strong {
+      display: block;
+      margin-top: 12px;
+      font-size: 1.2rem;
+      color: #000;
+    }
+    .divider {
+      height: 1px;
+      background-color: #ddd;
+      margin: 24px 0;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      animation: toastInOut 3s ease forwards;
+      z-index: 1000;
+    }
+    @keyframes toastInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    @media screen and (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+      }
+      button {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Luxe Boutique</header>
+  <div class="container">
+    <h1>🛒 Self Checkout</h1>
+    <input type="text" id="barcodeInput" placeholder="Scan or enter barcode" />
+    <button onclick="scanProduct()">➕ Add</button>
+    <div class="divider"></div>
+    <div id="cart"></div>
+    <div class="divider"></div>
+    <button onclick="checkout()">💳 Checkout</button>
+    <div id="toast" class="toast" style="display: none;"></div>
+  </div>
+  <script>
+    const productDB = {
+      "942753601": { name: "Press on Nails", price: 10.99 },
+      "7498625": { name: "Smoothie", price: 6.99 },
+      "7589415": { name: "Candy Cup", price: 5.99 }
+    };
+    let cart = [];
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+    function scanProduct() {
+      const code = document.getElementById('barcodeInput').value;
+      const product = productDB[code];
+      if (product) {
+        cart.push(product);
+        displayCart();
+        showToast(`${product.name} added to cart!`);
+      } else {
+        showToast("Product not found.");
+      }
+      document.getElementById('barcodeInput').value = '';
+    }
+    function displayCart() {
+      let html = "<h3>Cart:</h3>";
+      let total = 0;
+      const itemCounts = {};
+      cart.forEach(item => {
+        const key = item.name;
+        if (!itemCounts[key]) {
+          itemCounts[key] = { ...item, quantity: 1 };
+        } else {
+          itemCounts[key].quantity++;
+        }
+        total += item.price;
+      });
+      let i = 1;
+      for (const key in itemCounts) {
+        const entry = itemCounts[key];
+        const qtyLabel = entry.quantity > 1 ? ` (${entry.quantity})` : "";
+        html += `${i++}. ${entry.name}${qtyLabel} - $${(entry.price * entry.quantity).toFixed(2)}<br>`;
+      }
+      html += `<strong>Total: $${total.toFixed(2)}</strong>`;
+      document.getElementById('cart').innerHTML = html;
+    }
+    function checkout() {
+      if (cart.length === 0) {
+        showToast("Your cart is empty!");
+        return;
+      }
+      if (!confirm("Would you like your receipt?")) {
+        cart = [];
+        displayCart();
+        return;
+      }
+      const date = new Date().toLocaleDateString();
+      const receiptWindow = window.open('', '', 'width=600,height=600');
+      receiptWindow.document.write(`
+        <html>
+        <head>
+          <title>Receipt</title>
+          <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&display=swap" rel="stylesheet">
+          <style>
+            body {
+              font-family: sans-serif;
+              padding: 24px;
+            }
+            h2 {
+              margin-top: 0;
+              font-family: 'Gilda Display', serif;
+              font-size: 2rem;
+              text-align: center;
+            }
+            p {
+              margin: 8px 0;
+              font-size: 16px;
+            }
+            .footer {
+              margin-top: 40px;
+              font-size: 0.9rem;
+              text-align: center;
+              color: #777;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Luxe Boutique</h2>
+          <p style="text-align:right;"><em>${date}</em></p>
+          <h3>Your Receipt</h3>
+      `);
+      let total = 0;
+      const itemCounts = {};
+      cart.forEach(item => {
+        const key = item.name;
+        if (!itemCounts[key]) {
+          itemCounts[key] = { ...item, quantity: 1 };
+        } else {
+          itemCounts[key].quantity++;
+        }
+        total += item.price;
+      });
+      for (const key in itemCounts) {
+        const entry = itemCounts[key];
+        const qtyLabel = entry.quantity > 1 ? ` (${entry.quantity})` : "";
+        receiptWindow.document.write(`<p>${entry.name}${qtyLabel} - $${(entry.price * entry.quantity).toFixed(2)}</p>`);
+      }
+      receiptWindow.document.write(`
+          <hr>
+          <p><strong>Total: $${total.toFixed(2)}</strong></p>
+          <div class="footer">Thank you for shopping at Luxe Boutique. All sales are final.</div>
+        </body>
+        </html>
+      `);
+      receiptWindow.document.close();
+      receiptWindow.print();
+      cart = [];
+      displayCart();
+    }
+  </script>
+</body>
+</html>
